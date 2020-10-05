@@ -5,7 +5,7 @@ from typing import List, Tuple
 from urllib.parse import urldefrag
 
 import rdflib
-from rdflib import RDF, DCTERMS
+from rdflib import RDF, DCTERMS, DC
 
 from .nanopub import Nanopub
 from .rdf_wrapper import RdfWrapper
@@ -132,7 +132,7 @@ class FairStep(RdfWrapper):
 
         # TODO: Setting types should probably be possible using the .inputs property setter? Or better idea?
         for varname, vartype in inputs.items():
-            varuri = uri + varname
+            varuri = uri + '/' + varname
             self._rdf.add( (rdflib.URIRef(varuri), Nanopub.PROV.entity, rdflib.term.Literal(vartype)) )
 
         if return_type:
@@ -140,6 +140,8 @@ class FairStep(RdfWrapper):
             self.outputs = [varuri] 
             self._rdf.add( (rdflib.URIRef(varuri), Nanopub.PROV.entity, rdflib.term.Literal(return_type)) )
 
+        # Specify that the language is python
+        self.set_attribute(DC.language, rdflib.URIRef('python'), overwrite=False)
         return self
 
     @property
@@ -259,6 +261,7 @@ class FairStep(RdfWrapper):
             if var not in input_dict:
                 raise Exception(f'Input variable {var} needs to be assigned a value.')
 
+
         # Generate execution prov
         prov = rdflib.Graph()
 
@@ -271,6 +274,14 @@ class FairStep(RdfWrapper):
         if self.is_manual_task:
             if agent is None:
                 raise Exception('For manual tasks, the "agent" must be specified to FairStep execute() method. This should be a URI indicating the entity that carried out the task.')
+
+        elif self.is_script_task:
+            function_code = self.description
+            if str(self.get_attribute(DC.language)) == 'python':
+                print(f'Execute function f{function_code}, with inputs f{input_dict}')
+            else:
+                raise Exception('Only python is currently supported as a software language')
+
 
         print( (this_step, Nanopub.PROV.wasAssociatedWith, agent) )
 
