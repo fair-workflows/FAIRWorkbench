@@ -95,7 +95,7 @@ class FairStep(RdfWrapper):
             Generates a plex rdf decription for the given python function, and makes this FairStep object a bpmn:ScriptTask.
         """
         name = function.__name__ + str(time.time())
-        uri = 'http://purl.org/nanopub/temp/mynanopub#function' + name
+        uri = 'http://purl.org/temp/function' + name
         self = cls(uri=uri)
         code = inspect.getsource(function)
 
@@ -125,8 +125,20 @@ class FairStep(RdfWrapper):
         else:
             return_type = arginfo.annotations['return']
 
-        print(inputs, return_type)
+        # Make URIs for the inputs and (if applicable) output.
+        # Use these to set the inputs/outputs of the step.
+        input_list = [uri + '/' + varname for varname in inputs]
+        self.inputs = input_list
 
+        # TODO: Setting types should probably be possible using the .inputs property setter? Or better idea?
+        for varname, vartype in inputs.items():
+            varuri = uri + varname
+            self._rdf.add( (rdflib.URIRef(varuri), Nanopub.PROV.entity, rdflib.term.Literal(vartype)) )
+
+        if return_type:
+            varuri = uri + '/return'
+            self.outputs = [varuri] 
+            self._rdf.add( (rdflib.URIRef(varuri), Nanopub.PROV.entity, rdflib.term.Literal(return_type)) )
 
         return self
 
