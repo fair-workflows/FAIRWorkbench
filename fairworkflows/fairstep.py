@@ -204,26 +204,47 @@ class FairStep(RdfWrapper):
         assert conforms, log
 
 
-    def execute(self, *args: Tuple[str, str], log=True):
+    def execute(self, *args: Tuple[str, str], log=True, agent=None):
 
-        var_dict = {}
+        # Build input dict from the var/value tuples provided. Check that no vars are assigned twice,
+        # and that all vars are recognised inputs to this step.
+        input_dict = {}
         for var, value in args:
             var = rdflib.URIRef(var)
 
             if var not in self.inputs:
                 raise Exception(f'{var} is not a recognized input variable of this step.')
-            if var in var_dict:
+            if var in input_dict:
                 raise Exception(f'Variable {var} cannot be specified more than once in argument list to .execute()')
 
-            var_dict[var] = value
+            input_dict[var] = value
 
             if log:
                 print(f'Input variable {var} was assigned value: {value}')
 
+        # Check that values for all input vars have been assigned
         for var in self.inputs:
-            if var not in var_dict:
+            if var not in input_dict:
                 raise Exception(f'Input variable {var} needs to be assigned a value.')
 
+        # Generate execution prov
+        prov = rdflib.Graph()
+
+        this_step = rdflib.Namespace(self._uri)
+        this_activity = this_step.activity
+
+        print( (this_activity, Nanopub.PPLAN.correspondsToStep, this_step) )
+
+        # For manual tasks, the agent carrying out the task must be specified
+        if self.is_manual_task:
+            if agent is None:
+                raise Exception('For manual tasks, the "agent" must be specified to FairStep execute() method. This should be a URI indicating the entity that carried out the task.')
+
+        print( (this_step, Nanopub.PROV.wasAssociatedWith, agent) )
+
+        for var, value in input_dict.items():
+            print( (var, Nanopub.PROV.value, value) )
+    
 
 
     def __str__(self):
