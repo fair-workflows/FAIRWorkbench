@@ -108,6 +108,26 @@ class FairStep(RdfWrapper):
         # Specify that step is a ScriptTask
         self.set_attribute(RDF.type, Nanopub.BPMN.ScriptTask, overwrite=False)
 
+        # Get the input params for this function
+        arginfo = inspect.getfullargspec(function)
+
+        # Check that all variables provided have been given types
+        inputs = {}
+        for arg in arginfo.args:
+            if arg not in arginfo.annotations:
+                raise ValueError(f'Argument {arg} does not have a type annotation.')
+            else:
+                inputs[arg] = arginfo.annotations[arg]
+
+        # Check that return type is explicitly stated
+        if 'return' not in arginfo.annotations:
+            raise ValueError(f'Function does not have a return type specified')
+        else:
+            return_type = arginfo.annotations['return']
+
+        print(inputs, return_type)
+
+
         return self
 
     @property
