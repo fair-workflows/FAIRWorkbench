@@ -1,7 +1,7 @@
 import inspect
 import time
 import warnings
-from typing import List
+from typing import List, Tuple
 from urllib.parse import urldefrag
 
 import rdflib
@@ -146,7 +146,7 @@ class FairStep(RdfWrapper):
 
     @property
     def outputs(self) -> List[rdflib.URIRef]:
-        """Get inputs for this step.
+        """Get outputs for this step.
 
         Outputs are a list of URIRef's. The URIs should point to
         a pplan.Variable, for example: www.purl.org/stepuri#outputvarname.
@@ -202,6 +202,29 @@ class FairStep(RdfWrapper):
             conforms = False
 
         assert conforms, log
+
+
+    def execute(self, *args: Tuple[str, str], log=True):
+
+        var_dict = {}
+        for var, value in args:
+            var = rdflib.URIRef(var)
+
+            if var not in self.inputs:
+                raise Exception(f'{var} is not a recognized input variable of this step.')
+            if var in var_dict:
+                raise Exception(f'Variable {var} cannot be specified more than once in argument list to .execute()')
+
+            var_dict[var] = value
+
+            if log:
+                print(f'Input variable {var} was assigned value: {value}')
+
+        for var in self.inputs:
+            if var not in var_dict:
+                raise Exception(f'Input variable {var} needs to be assigned a value.')
+
+
 
     def __str__(self):
         """
